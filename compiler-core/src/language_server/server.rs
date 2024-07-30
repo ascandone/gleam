@@ -139,6 +139,8 @@ where
             Request::GoToDefinition(param) => self.goto_definition(param),
             Request::Completion(param) => self.completion(param),
             Request::CodeAction(param) => self.code_action(param),
+            Request::SignatureHelp(param) => self.signature_help(param),
+            Request::DocumentSymbol(param) => self.document_symbol(param),
             Request::ShowInlayHints(param) => self.show_inlay_hints(param),
         };
 
@@ -427,9 +429,19 @@ where
         })
     }
 
+    fn signature_help(&mut self, params: lsp_types::SignatureHelpParams) -> (Json, Feedback) {
+        let path = super::path(&params.text_document_position_params.text_document.uri);
+        self.respond_with_engine(path, |engine| engine.signature_help(params))
+    }
+
     fn code_action(&mut self, params: lsp::CodeActionParams) -> (Json, Feedback) {
         let path = super::path(&params.text_document.uri);
         self.respond_with_engine(path, |engine| engine.code_actions(params))
+    }
+
+    fn document_symbol(&mut self, params: lsp::DocumentSymbolParams) -> (Json, Feedback) {
+        let path = super::path(&params.text_document.uri);
+        self.respond_with_engine(path, |engine| engine.document_symbol(params))
     }
 
     fn show_inlay_hints(&mut self, params: lsp::InlayHintParams) -> (Json, Feedback) {
@@ -502,13 +514,19 @@ fn initialisation_handshake(connection: &lsp_server::Connection) -> InitializePa
             },
             completion_item: None,
         }),
-        signature_help_provider: None,
+        signature_help_provider: Some(lsp::SignatureHelpOptions {
+            trigger_characters: Some(vec!["(".into(), ",".into(), ":".into()]),
+            retrigger_characters: None,
+            work_done_progress_options: lsp::WorkDoneProgressOptions {
+                work_done_progress: None,
+            },
+        }),
         definition_provider: Some(lsp::OneOf::Left(true)),
         type_definition_provider: None,
         implementation_provider: None,
         references_provider: None,
         document_highlight_provider: None,
-        document_symbol_provider: None,
+        document_symbol_provider: Some(lsp::OneOf::Left(true)),
         workspace_symbol_provider: None,
         code_action_provider: Some(lsp::CodeActionProviderCapability::Simple(true)),
         code_lens_provider: None,

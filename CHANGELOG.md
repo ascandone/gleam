@@ -1,238 +1,349 @@
 # Changelog
 
-## Unreleased
+## v1.4.0-rc2 - Unreleased
 
-## v1.3.0-rc3 - 2024-07-08
+### Bug Fixes
 
-- Fixed a bug where not all pure function calls in constant definitions would be
-  annotated as `@__PURE__` when compiling to JavaScript.
-  ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
+- Fixed a bug where pipe function arity errors could have an incorrect error
+  message.
+  ([sobolevn](https://github.com/sobolevn))
 
-## v1.3.0-rc2 - 2024-07-06
+- Fixed a bug where the case of type parameters would not be checked.
+  ([Surya Rose](https://github.com/gearsdatapacks))
 
-### Formatter
-
-- Fixed a bug when multiple subjects in a case would be split even if not
-  necessary.
-  ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
-
-## v1.3.0-rc1 - 2024-06-30
+## v1.4.0-rc1 - 2024-07-29
 
 ### Build tool
 
-- `gleam remove` will now present an error if a package being removed does not
-  exist as a dependency in the project.
-  ([Changfeng Lou](https://github.com/hnlcf))
+- `gleam docs build` now takes an optional `--target` flag to specify the target
+  platform for the generated documentation.
+  ([Jiangda Wang](https://github.com/frank-iii))
 
-- `gleam add` now takes an optional package version specifier,
-  separated by a `@`, that resolves as follows:
-
-  ```shell
-  gleam add lustre@1.2.3 # "1.2.3"
-  gleam add lustre@1.2   # ">= 1.2.0 and < 2.0.0"
-  gleam add lustre@1     # ">= 1.0.0 and < 2.0.0"
-  ```
-
-  ([Rahul D. Ghosal](https://github.com/rdghosal))
+- Warnings are now emitted each time the project is built, even if the module
+  the warnings originated from were loaded from the cache rather than
+  recompiling.
+  ([Louis Pilfold](https://github.com/lpil))
 
 ### Compiler
 
-- Added more an informative error message for when attempting to use the `..`
-  syntax to append to a list rather than prepend.
+- Labelled arguments can now use the label shorthand syntax.
+  This means that when you're passing a variable as a labelled argument and it
+  happens to have the same name as the label, you can omit the variable name:
+
+  ```gleam
+  pub fn date(day day: Int, month month: Month, year year: Year) -> Date {
+    todo
+  }
+
+  pub fn main() {
+    let day = 11
+    let month = October
+    let year = 1998
+
+    date(year:, month:, day:)
+    // This is the same as writing
+    // date(year: year, month: month, day: day)
+  }
+  ```
+
+  ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
+
+- Labelled pattern variables can now use the label shorthand syntax.
+  This means that when you're pattern matching on a record constructor and
+  binding its labelled fields to variables that happen to have the same name,
+  you can omit the variable name:
+
+  ```gleam
+  pub type Date
+    Date(day: Int, month: Month, year: Year)
+  }
+
+  pub fn main() {
+    case Date(11, October, 1998) {
+      Date(year:, month:, day:) -> todo
+      // This is the same as writing
+      // Date(year: year, month: month, day: day) -> todo
+    }
+
+  }
+  ```
+
+  ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
+
+- The warning for the deprecated `[..]` pattern has been improved.
+  ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
+
+- Record accessors are now fault tolerant. This means an invalid label can be
+  properly detected and won't invalidate the rest of the expression.
+  ([Ameen Radwan](https://github.com/Acepie))
+
+- Erlang type spec generation has been improved to avoid new warnings emitted in
+  OTP27.
+  ([Damir Vandic](https://github.com/dvic))
+
+- Error messages for invalid record constructors now contain a restructured
+  example of what the user likely intended. This is especially helpful for
+  users coming from other languages, like Rust or Go.
+
+  For example, provided a User type:
+
+  ```gleam
+  pub type User {
+    name: String
+  }
+  ```
+
+  The compiler errors with the following message:
 
   ```
   error: Syntax error
-    ┌─ /src/parse/error.gleam:4:14
+    ┌─ /src/parse/error.gleam:3:5
     │
-  4 │         [..rest, last] -> 1
-    │          ^^^^^^ I wasn't expecting elements after this
+  3 │     name: String,
+    │     ^^^^ I was not expecting this
 
-  Lists are immutable and singly-linked, so to match on the end
-  of a list would require the whole list to be traversed. This
-  would be slow, so there is no built-in syntax for it. Pattern
-  match on the start of the list instead.
-  ```
+  Each custom type variant must have a constructor:
 
-  ([Antonio Iaccarino](https://github.com/eingin))
-
-- The compiler now emits a warning for redundant function captures in a
-  pipeline:
-
-  ```
-  warning: Redundant function capture
-    ┌─ /src/warning/wrn.gleam:5:17
-    │
-  5 │     1 |> wibble(_, 2) |> wibble(2)
-    │                 ^ You can safely remove this
-
-  This function capture is redundant since the value is already piped as the
-  first argument of this call.
-
-  See: https://tour.gleam.run/functions/pipelines/
-  ```
-
-  ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
-
-- The syntax `[a..b]` is now deprecated in favour of the `[a, ..b]` syntax.
-  This was to avoid it being mistaken for a range syntax, which Gleam does
-  not have.
-  ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
-
-- Functions etc named `maybe` are now escaped in generated Erlang as it is now a
-  reserved word in Erlang/OTP 27.
-  ([Jake Barszcz](https://github.com/barszcz))
-
-- Functions, types and constructors named `maybe` and `else` are now
-  escaped in generated Erlang to avoid clashing with Erlang's keywords.
-  ([Jake Barszcz](https://github.com/barszcz)) and
-  ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
-
-- Non byte aligned arrays that use literals for size are now marked as an
-  Unsupported feature for Javascript since they would already cause
-  a runtime error on Javascript.
-
-  This means if you compile specifically for Javascript you will now recieve
-  this error:
-
-  ```
-  error: Unsupported feature for compilation target
-    ┌─ /src/test/gleam_test.gleam:6:5
-    │
-  6 │   <<1:size(5)>>
-    │     ^^^^^^^^^
-
-  Non byte aligned array is not supported for JavaScript compilation.
-  ```
-
-  Else any functions which rely on this will not be compiled into Javascript.
-  ([Pi-Cla](https://github.com/Pi-Cla))
-
-- Compilation fault tolerance is now at a statement level instead of a function
-  level. This means that the compiler will attempt to infer the rest of the
-  statements in a function when there is an error in a previous one.
-  ([Ameen Radwan](https://github.com/Acepie))
-
-- The JavaScript prelude is no-longer rewritten each time a project is compiled
-  to JavaScript.
-  ([Ofek Doitch](https://github.com/ofekd))
-
-- Compiler now supports arithmetic operations in guards.
-  ([Danielle Maywood](https://github.com/DanielleMaywood))
-
-- Import cycles now show the location where the import occur.
-  ([Ameen Radwan](https://github.com/Acepie))
-
-- Error messages resulting from unexpected tokens now include information on
-  the found token's type. This updated message explains how the lexer handled
-  the token, so as to guide the user towards providing correct syntax.
-
-  Following is an example, where the error message indicates that the name of
-  the provided field conflicts with a keyword:
-
-  ```
-  3 │     A(type: String)
-    │       ^^^^ I was not expecting this
-
-  Found the keyword `type`, expected one of:
-  - `)`
-  - a constructor argument name
+  pub type User {
+    User(
+      name: String,
+    )
+  }
   ```
 
   ([Rahul D. Ghosal](https://github.com/rdghosal))
 
-- When compiling to JavaScript constants will now be annotated as `@__PURE__`.
+- The `<>` string concatenation operator can now be used in constant
+  expressions.
+  ([Thomas](https://github.com/DeviousStoat))
+
+- Function calls are now fault tolerant. This means that errors in the function
+  call arguments won't stop the rest of the call from being analysed.
+  ([Ameen Radwan](https://github.com/Acepie))
+
+- The error message presented when a function is called in a guard has been
+  improved.
+  ([Thomas](https://github.com/DeviousStoat))
+
+- Case expressions are now fault tolerant. This means an subject, pattern,
+  guard, or then body can be properly detected and won't invalidate the rest
+  of the expression.
+  ([Ameen Radwan](https://github.com/Acepie))
+
+- Documentation comments that come before a regular comment are no longer
+  clumped together with the documentation of the following definition.
+  Now commenting out a definition won't result in its documentation merging with
+  the following one's.
+
+  ```gleam
+  /// This doc comment will be ignored!
+  // a commented definition
+  // fn wibble() {}
+
+  /// Wibble's documentation.
+  fn wibble() { todo }
+  ```
+
   ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
+
+- The `little` and `big` endianness options, the `signed` and `unsigned` integer
+  options, and sized floats (32-bit and 64-bit), can now be used in bit array
+  expressions and patterns on the JavaScript target.
+  ([Richard Viney](https://github.com/richard-viney))
+
+- The `utf8` option can now be used with constant strings in bit array patterns
+  on the JavaScript target.
+  ([Richard Viney](https://github.com/richard-viney))
 
 ### Formatter
 
+- The formatter will no longer move a documentation comment below a regular
+  comment following it. This snippet of code is left as it is by the formatter:
+
+  ```gleam
+  /// This doc comment will be ignored!
+  // a commented definition
+  // fn wibble() {}
+
+  /// Wibble's documentation.
+  fn wibble() {
+    todo
+  }
+  ```
+
+  While previously all documentation comments would be merged together into one,
+  ignoring the regular comment separating them:
+
+  ```gleam
+  // a commented definition
+  // fn wibble() {}
+
+  /// This doc comment will be ignored!
+  /// Wibble's documentation.
+  fn wibble() {
+    todo
+  }
+  ```
+
+  ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
+
 ### Language Server
 
-- The language server will now suggest the "Remove redundant tuple" action even
-  if the case expression contains some catch all patterns:
+- The language server can now show completions for fields if a record access is
+  being attempted.
+  ([Ameen Radwan](https://github.com/Acepie))
 
+- The language server will now insert a blank line before the first statement
+  when inserting a new import and there are no other imports at the top of the
+  module.
+  ([Zhomart Mukhamejanov](https://github.com/Zhomart))
+
+- The language server now suggests a code a action to rename variables, types
+  and functions when they don't match the Gleam naming requirements:
+
+  ```gleam
+  let myNumber = 10
   ```
-  case #(a, b) {
-    #(1, 2) -> todo
-    _ -> todo
+
+  Becomes:
+
+  ```gleam
+  let my_number = 10
+  ```
+
+  ([Surya Rose](https://github.com/gearsdatapacks))
+
+- The language server can now suggest a code action to convert `let assert` into
+  a case expression:
+
+  ```gleam
+  let assert Ok(value) = get_result()
+  ```
+
+  Becomes:
+
+  ```gleam
+  let value = case get_result() {
+    Ok(value) -> value
+    _ -> panic
+  }
+  ```
+
+  ([Surya Rose](https://github.com/gearsdatapacks))
+
+- The language server can now show signature help when writing functions.
+  ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
+
+- The language server now supports listing document symbols, such as functions
+  and constants, for the current Gleam file.
+  ([PgBiel](https://github.com/PgBiel))
+
+- The language server can now suggest a code action to automatically use
+  shorthand labels where possible:
+
+  ```gleam
+  case date {
+    Day(day: day, month: month, year: year) -> todo
   }
   ```
 
   Becomes:
 
-  ```
-  case a, b {
-    1, 2 -> todo
-    _, _ -> todo
+  ```gleam
+  case date {
+    Day(day:, month:, year:) -> todo
   }
   ```
 
   ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
 
-- LSP can now suggest completions for values and types from importable modules
-  and adds the import to the top of the file.
+- The language server can now show completions for labels when writing a
+  function call or record construction.
   ([Ameen Radwan](https://github.com/Acepie))
 
-- Diagnostics with extra labels now show the diagnostic in all locations
-  including across multiple files.
-  ([Ameen Radwan](https://github.com/Acepie))
+- The language server can now suggest a code action to fill in the labels of a
+  function call:
 
-- LSP completions now use the "text_edit" language server API resulting in
-  better/more accurate insertions.
-  ([Ameen Radwan](https://github.com/Acepie))
+  ```gleam
+  pub type Date {
+    Date(year: Int, month: Int, day: Int)
+  }
 
-- Completions are no longer provided inside comments.
-  ([Nicky Lim](https://github.com/nicklimmm))
+  pub fn main() {
+    Date()
+  }
+  ```
 
-- The language server will now show all the ignored fields when hovering over
-  `..` in a record pattern.
+  Becomes:
+
+  ```gleam
+  pub type Date {
+    Date(year: Int, month: Int, day: Int)
+  }
+
+  pub fn main() {
+    Date(year: todo, month: todo, day: todo)
+  }
+  ```
+
   ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
+
+- Completions are now sorted by priority based on why the completion is in the
+  list. This means that more specific completions like labels and local
+  definitions will be shown before more broad completions like functions from a
+  not yet imported module.
+  ([Ameen Radwan](https://github.com/Acepie))
 
 ### Bug Fixes
 
-- Fixed a bug where the compiler would output a confusing error message when
-  trying to use the spread syntax to append to a list.
+- Functions, types and constructors named `module_info` are now escaped
+  in generated Erlang code to avoid conflicts with the builtin
+  `module_info/0` and `module_info/1` functions.
+  ([Juraj Petráš](https://github.com/Hackder))
+
+- Fixed formatting of comments at the start of a case branch.
   ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
 
-- Fixed a bug where the formatter would strip empty lines out of the body of an
-  anonymous function passed as an argument.
+- Fixed a bug where a private type could be leaked from an internal module.
+  ([Ameen Radwan](https://github.com/Acepie))
+
+- Fixed a bug where certain binops would not wrap their arguments properly
+  thus generating invalid JavaScript.
+  ([Ameen Radwan](https://github.com/Acepie))
+
+- Fixed formatting of function definitions marked as `@internal`
   ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
-
-- Fixed a bug where the compiler would crash when a type was defined with
-  the same name as an imported type.
-  ([Gears](https://github.com/gearsdatapacks))
-
-- Fixed a bug where a horizontal scrollbar would appear on code blocks in built
-  documentation when they contained lines 79 or 80 characters long.
-  ([Richard Viney](https://github.com/richard-viney))
 
 - Fixed a bug where importing a record constructor in an unqualified fashion and
-  aliasing it and then using it in a constant expression would generate invalid
-  JavaScript.
-  ([Louis Pilfold](https://github.com/lpil))
+  aliasing it and then using it in a case guard expression would generate
+  invalid JavaScript.
+  ([PgBiel](https://github.com/PgBiel))
 
-- Fixed a bug where the compiler would crash because types weren't registered if
-  they referenced a non-existent type.
-  ([Gears](https://github.com/gearsdatapacks))
+## v1.3.2 - 2024-07-11
 
-- Fixed a bug where the compiler would generate invalid Erlang when pattern
-  matching on strings with an `as` pattern.
+### Language Server
+
+- The language server no longer shows completions when inside a literal string.
   ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
-
-- Fixed a bug where the compiler would warn that a module alias was unused when
-  it was only used in case patterns.
-  ([Michael Jones](https://github.com/michaeljones))
-
-## v1.2.1 - 2024-05-30
 
 ### Bug Fixes
 
-- Fixed a bug where the compiler could fail to detect modules that would clash
-  with Erlang modules.
+- Fixed a bug where the compiler would report errors for duplicate `@external`
+  attributes with inconsistent spans between Erlang and JavaScript.
+  ([Connor Szczepaniak](https://github.com/cszczepaniak))
+
+- Fixed a bug where `gleam add` would fail to parse version specifiers
+  correctly.
   ([Louis Pilfold](https://github.com/lpil))
 
-- Fixed a bug where dependency version resolution could crash for certain
-  release candidate versions.
-  ([Marshall Bowers](https://github.com/maxdeviant))
+- Fixed a bug where single clause case expressions could generate JavaScript
+  code with incorrectly rewritten JavaScript variable names.
+  ([Louis Pilfold](https://github.com/lpil))
 
-- Fixed a bug where trailing comments would be moved out of a bit array.
-  ([Giacomo Cavalieri](https://github.com/giacomocavalieri))
+## v1.3.1 - 2024-07-10
+
+### Bug Fixes
+
+- Fixes a bug with import cycle detection when there is more than 2 imports in
+  the cycle.
+  ([Ameen Radwan](https://github.com/Acepie))
