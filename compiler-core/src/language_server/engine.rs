@@ -23,10 +23,8 @@ use ecow::EcoString;
 use itertools::Itertools;
 use lsp::CodeAction;
 use lsp_types::{
-    
-    self as lsp, DocumentSymbol, Hover, HoverContents, InlayHint, InlayHintKind, InlayHintLabel, MarkedString, SignatureHelp, SymbolKind,
-    SymbolTag, Url,
-,
+    self as lsp, DocumentSymbol, Hover, HoverContents, InlayHint, InlayHintKind, InlayHintLabel,
+    MarkedString, SignatureHelp, SymbolKind, SymbolTag, Url,
 };
 use std::sync::Arc;
 
@@ -36,8 +34,9 @@ use super::{
         RedundantTupleInCaseSubject,
     },
     completer::Completer,
-    signature_help, configuration::SharedConfig,
-    src_offset_to_lsp_position, src_span_to_lsp_range, DownloadDependencies, MakeLocker,
+    configuration::SharedConfig,
+    signature_help, src_offset_to_lsp_position, src_span_to_lsp_range, DownloadDependencies,
+    MakeLocker,
 };
 
 #[derive(Debug, PartialEq, Eq)]
