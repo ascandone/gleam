@@ -279,8 +279,6 @@ impl<'a, A> ModuleAnalyzer<'a, A> {
         // items.
         env.module_types
             .retain(|_, info| info.module == self.module_name);
-        env.accessors
-            .retain(|_, accessors| accessors.publicity.is_importable());
 
         // Ensure no exported values have private types in their type signature
         for value in env.module_values.values() {
@@ -869,11 +867,14 @@ impl<'a, A> ModuleAnalyzer<'a, A> {
         let mut constructors_data = vec![];
 
         for (index, constructor) in constructors.iter().enumerate() {
-            assert_unique_name(
+            if let Err(error) = assert_unique_name(
                 &mut self.value_names,
                 &constructor.name,
                 constructor.location,
-            )?;
+            ) {
+                self.problems.error(error);
+                continue;
+            }
 
             let mut field_map = FieldMap::new(constructor.arguments.len() as u32);
             let mut args_types = Vec::with_capacity(constructor.arguments.len());
